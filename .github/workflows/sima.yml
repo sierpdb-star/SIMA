@@ -39,7 +39,11 @@ jobs:
           if faltantes:
               raise SystemExit(f"Tabelas ausentes: {faltantes}")
 
-          rotas = {route.path for route in app.routes}
+          rotas = {
+              route.path
+              for route in app.routes
+              if hasattr(route, "path")
+          }
 
           rotas_esperadas = {
               "/contatos/",
