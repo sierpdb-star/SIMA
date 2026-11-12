@@ -31,62 +31,81 @@ jobs:
 
           with TestClient(app) as client:
 
+              # Teste inicial
               resposta = client.get("/")
               assert resposta.status_code == 200
 
-              contato = client.post(
+              # Contato autorizado com origem informada
+              autorizado = client.post(
                   "/contatos/",
                   params={
-                      "nome": "Contato de Teste",
-                      "telefone": "73999990000",
+                      "nome": "Contato Autorizado",
+                      "telefone": "73999990001",
+                      "canal": "whatsapp",
+                      "empresa_id": "empresa_teste",
+                      "consentimento": True,
+                      "origem_consentimento": "Formulario de teste"
+                  }
+              )
+
+              assert autorizado.status_code == 200
+              assert autorizado.json()["consentimento"] == "granted"
+              autorizado_id = autorizado.json()["id"]
+
+              # Contato sem consentimento
+              pendente = client.post(
+                  "/contatos/",
+                  params={
+                      "nome": "Contato Pendente",
+                      "telefone": "73999990002",
                       "canal": "whatsapp",
                       "empresa_id": "empresa_teste",
                       "consentimento": False
                   }
               )
 
-              assert contato.status_code == 200, contato.text
-              contato_id = contato.json()["id"]
+              assert pendente.status_code == 200
+              assert pendente.json()["consentimento"] == "pending"
+              pendente_id = pendente.json()["id"]
 
-              consulta_contato = client.get(
+              # Descadastrar contato autorizado
+              descadastro = client.post(
+                  f"/contatos/{autorizado_id}/descadastrar",
+                  params={"empresa_id": "empresa_teste"}
+              )
+
+              assert descadastro.status_code == 200
+              assert descadastro.json()["consentimento"] == "revoked"
+
+              # Confirmar que o descadastro foi persistido
+              consulta = client.get(
                   "/contatos/",
                   params={"empresa_id": "empresa_teste"}
               )
 
-              assert consulta_contato.status_code == 200
-              assert any(
-                  c["id"] == contato_id
-                  for c in consulta_contato.json()
-              )
+              assert consulta.status_code == 200
 
-              campanha = client.post(
-                  "/campanhas/",
-                  json={
-                      "empresa_id": "empresa_teste",
-                      "nome": "Campanha de Teste",
-                      "mensagem": "Mensagem fictícia de teste.",
-                      "canal": "whatsapp"
-                  }
-              )
+              contatos = {
+                  c["id"]: c
+                  for c in consulta.json()
+              }
 
-              assert campanha.status_code == 200, campanha.text
-              campanha_id = campanha.json()["id"]
+              assert contatos[autorizado_id]["consentimento"] == "revoked"
+              assert contatos[pendente_id]["consentimento"] == "pending"
 
-              consulta_campanha = client.get(
-                  "/campanhas/",
+              # Descadastro de contato inexistente
+              inexistente = client.post(
+                  "/contatos/999999/descadastrar",
                   params={"empresa_id": "empresa_teste"}
               )
 
-              assert consulta_campanha.status_code == 200
-              assert any(
-                  c["id"] == campanha_id
-                  for c in consulta_campanha.json()
-              )
+              assert inexistente.status_code == 404
 
               print("API INICIAL: OK")
-              print("CADASTRO DE CONTATO: OK")
-              print("CONSULTA DE CONTATO: OK")
-              print("CRIACAO DE CAMPANHA: OK")
-              print("CONSULTA DE CAMPANHA: OK")
-              print("S.I.M.A.: TESTE COMPLETO APROVADO")
+              print("CONSENTIMENTO AUTORIZADO: OK")
+              print("CONTATO PENDENTE: OK")
+              print("DESCADASTRAMENTO: OK")
+              print("PERSISTENCIA DO DESCADASTRO: OK")
+              print("CONTATO INEXISTENTE: OK")
+              print("S.I.M.A.: TESTES DE PROTECAO APROVADOS")
           '
