@@ -1,4 +1,6 @@
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -23,8 +25,21 @@ def cadastrar_contato(
     canal: str,
     empresa_id: str,
     consentimento: bool = False,
+    origem_consentimento: str | None = None,
     banco: Session = Depends(obter_banco)
 ):
+    if not nome.strip() or not telefone.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Nome e telefone são obrigatórios."
+        )
+
+    if not empresa_id.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Empresa é obrigatória."
+        )
+
     existente = banco.query(Contact).filter_by(
         company_id=empresa_id,
         phone=telefone,
@@ -37,12 +52,21 @@ def cadastrar_contato(
             detail="Este contato já está cadastrado."
         )
 
+    autorizado = consentimento and bool(
+        origem_consentimento and origem_consentimento.strip()
+    )
+
+    agora = datetime.now(timezone.utc)
+
     contato = Contact(
         company_id=empresa_id,
-        name=nome,
-        phone=telefone,
+        name=nome.strip(),
+        phone=telefone.strip(),
         channel=canal,
-        consent_status="granted" if consentimento else "pending"
+        consent_status="granted" if autorizado else "pending",
+        consent_source=origem_consentimento.strip()
+        if autorizado else None,
+        consent_at=agora if autorizado else None
     )
 
     banco.add(contato)
@@ -78,3 +102,32 @@ def listar_contatos(
         }
         for c in contatos
     ]
+
+
+@router.post("/{contato_id}/descadastrar")
+def descadastrar_contato(
+    contato_id: int,
+    empresa_id: str,
+    banco: Session = Depends(obter_banco)
+):
+    contato = banco.query(Contact).filter_by(
+        id=contato_id,
+        company_id=empresa_id
+    ).first()
+
+    if not contato:
+        raise HTTPException(
+            status_code=404,
+            detail="Contato não encontrado."
+        )
+
+    contato.consent_status = "revoked"
+    contato.opted_out_at = datetime.now(timezone.utc)
+
+    banco.commit()
+
+    return {
+        "mensagem": "Contato descadastrado com sucesso.",
+        "id": contato.id,
+        "consentimento": contato.consent_status
+    }
