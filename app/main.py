@@ -1,19 +1,17 @@
 
-
 from fastapi import FastAPI
 
 from app.database import criar_banco
-
-# Importar os modelos para registrar todas as tabelas
 from app import models
 from app import campaign_models
 from app import delivery_models
+from app.contact_routes import router as contact_router
 
 
 app = FastAPI(
     title="S.I.M.A.",
     description="Sistema Inteligente de Mensagens Automatizadas",
-    version="0.2.0"
+    version="0.3.0"
 )
 
 
@@ -22,12 +20,15 @@ def inicializar_sistema():
     criar_banco()
 
 
+app.include_router(contact_router)
+
+
 @app.get("/")
 def inicio():
     return {
         "projeto": "S.I.M.A.",
         "status": "online",
-        "versao": "0.2.0",
+        "versao": "0.3.0",
         "mensagem": "Sistema iniciado com sucesso!"
     }
 
@@ -38,5 +39,6 @@ def status():
         "sistema": "S.I.M.A.",
         "funcionamento": "inicializado",
         "banco_de_dados": "configurado",
+        "api_contatos": "integrada",
         "envios_automaticos": False
     }
