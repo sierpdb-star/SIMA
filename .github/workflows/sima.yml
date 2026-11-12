@@ -26,32 +26,67 @@ jobs:
       - name: Testar banco e APIs
         run: |
           python -c '
-          from sqlalchemy import inspect
-          from app.main import app, inicializar_sistema
-          from app.database import engine
+          from fastapi.testclient import TestClient
+          from app.main import app
 
-          inicializar_sistema()
+          with TestClient(app) as client:
 
-          tabelas = set(inspect(engine).get_table_names())
-          esperadas = {"contacts", "campaigns", "delivery_logs"}
+              resposta = client.get("/")
+              assert resposta.status_code == 200
 
-          faltantes = esperadas - tabelas
-          if faltantes:
-              raise SystemExit(f"Tabelas ausentes: {faltantes}")
+              contato = client.post(
+                  "/contatos/",
+                  params={
+                      "nome": "Contato de Teste",
+                      "telefone": "73999990000",
+                      "canal": "whatsapp",
+                      "empresa_id": "empresa_teste",
+                      "consentimento": False
+                  }
+              )
 
-          rotas = set(app.openapi()["paths"].keys())
+              assert contato.status_code == 200, contato.text
+              contato_id = contato.json()["id"]
 
-          rotas_esperadas = {
-              "/contatos/",
-              "/campanhas/"
-          }
+              consulta_contato = client.get(
+                  "/contatos/",
+                  params={"empresa_id": "empresa_teste"}
+              )
 
-          faltam_rotas = rotas_esperadas - rotas
-          if faltam_rotas:
-              raise SystemExit(f"Rotas ausentes: {faltam_rotas}")
+              assert consulta_contato.status_code == 200
+              assert any(
+                  c["id"] == contato_id
+                  for c in consulta_contato.json()
+              )
 
-          print("BANCO DE DADOS: OK")
-          print("API DE CONTATOS: OK")
-          print("API DE CAMPANHAS: OK")
-          print("S.I.M.A.: TESTE APROVADO")
+              campanha = client.post(
+                  "/campanhas/",
+                  json={
+                      "empresa_id": "empresa_teste",
+                      "nome": "Campanha de Teste",
+                      "mensagem": "Mensagem fictícia de teste.",
+                      "canal": "whatsapp"
+                  }
+              )
+
+              assert campanha.status_code == 200, campanha.text
+              campanha_id = campanha.json()["id"]
+
+              consulta_campanha = client.get(
+                  "/campanhas/",
+                  params={"empresa_id": "empresa_teste"}
+              )
+
+              assert consulta_campanha.status_code == 200
+              assert any(
+                  c["id"] == campanha_id
+                  for c in consulta_campanha.json()
+              )
+
+              print("API INICIAL: OK")
+              print("CADASTRO DE CONTATO: OK")
+              print("CONSULTA DE CONTATO: OK")
+              print("CRIACAO DE CAMPANHA: OK")
+              print("CONSULTA DE CAMPANHA: OK")
+              print("S.I.M.A.: TESTE COMPLETO APROVADO")
           '
