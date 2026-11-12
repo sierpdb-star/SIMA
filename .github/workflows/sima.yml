@@ -1,0 +1,44 @@
+
+name: Teste do S.I.M.A.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  testar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar projeto
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Testar banco de dados
+        run: |
+          python -c '
+          from sqlalchemy import inspect
+          from app.main import inicializar_sistema
+          from app.database import engine
+
+          inicializar_sistema()
+
+          tabelas = set(inspect(engine).get_table_names())
+          esperadas = {"contacts", "campaigns", "delivery_logs"}
+          faltantes = esperadas - tabelas
+
+          if faltantes:
+              raise SystemExit(f"Tabelas ausentes: {faltantes}")
+
+          print("S.I.M.A.: TESTE CONCLUÍDO COM SUCESSO")
+          print("Tabelas encontradas:", sorted(tabelas))
+          '
