@@ -23,22 +23,35 @@ jobs:
       - name: Instalar dependências
         run: pip install -r requirements.txt
 
-      - name: Testar banco de dados
+      - name: Testar banco e APIs
         run: |
           python -c '
           from sqlalchemy import inspect
-          from app.main import inicializar_sistema
+          from app.main import app, inicializar_sistema
           from app.database import engine
 
           inicializar_sistema()
 
           tabelas = set(inspect(engine).get_table_names())
           esperadas = {"contacts", "campaigns", "delivery_logs"}
-          faltantes = esperadas - tabelas
 
+          faltantes = esperadas - tabelas
           if faltantes:
               raise SystemExit(f"Tabelas ausentes: {faltantes}")
 
-          print("S.I.M.A.: TESTE CONCLUÍDO COM SUCESSO")
-          print("Tabelas encontradas:", sorted(tabelas))
+          rotas = {route.path for route in app.routes}
+
+          rotas_esperadas = {
+              "/contatos/",
+              "/campanhas/"
+          }
+
+          faltam_rotas = rotas_esperadas - rotas
+          if faltam_rotas:
+              raise SystemExit(f"Rotas ausentes: {faltam_rotas}")
+
+          print("BANCO DE DADOS: OK")
+          print("API DE CONTATOS: OK")
+          print("API DE CAMPANHAS: OK")
+          print("S.I.M.A.: TESTE APROVADO")
           '
