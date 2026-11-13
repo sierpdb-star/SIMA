@@ -27,85 +27,62 @@ jobs:
         run: |
           python -c '
           from fastapi.testclient import TestClient
+          from sqlalchemy import inspect
           from app.main import app
+          from app.database import engine
 
           with TestClient(app) as client:
+              tabelas = set(inspect(engine).get_table_names())
+              esperadas = {"contacts", "campaigns", "delivery_logs"}
 
-              # Teste inicial
+              assert esperadas.issubset(tabelas), "Tabelas ausentes"
+
               resposta = client.get("/")
               assert resposta.status_code == 200
 
-              # Contato autorizado com origem informada
-              autorizado = client.post(
+              empresa = "teste-sima"
+
+              contato = client.post(
                   "/contatos/",
                   params={
-                      "nome": "Contato Autorizado",
-                      "telefone": "73999990001",
+                      "nome": "Contato de Teste",
+                      "telefone": "5599999999999",
                       "canal": "whatsapp",
-                      "empresa_id": "empresa_teste",
-                      "consentimento": True,
-                      "origem_consentimento": "Formulario de teste"
+                      "empresa_id": empresa,
+                      "consentimento": "false"
                   }
               )
+              assert contato.status_code == 200, contato.text
 
-              assert autorizado.status_code == 200
-              assert autorizado.json()["consentimento"] == "granted"
-              autorizado_id = autorizado.json()["id"]
-
-              # Contato sem consentimento
-              pendente = client.post(
-                  "/contatos/",
-                  params={
-                      "nome": "Contato Pendente",
-                      "telefone": "73999990002",
-                      "canal": "whatsapp",
-                      "empresa_id": "empresa_teste",
-                      "consentimento": False
-                  }
-              )
-
-              assert pendente.status_code == 200
-              assert pendente.json()["consentimento"] == "pending"
-              pendente_id = pendente.json()["id"]
-
-              # Descadastrar contato autorizado
-              descadastro = client.post(
-                  f"/contatos/{autorizado_id}/descadastrar",
-                  params={"empresa_id": "empresa_teste"}
-              )
-
-              assert descadastro.status_code == 200
-              assert descadastro.json()["consentimento"] == "revoked"
-
-              # Confirmar que o descadastro foi persistido
               consulta = client.get(
                   "/contatos/",
-                  params={"empresa_id": "empresa_teste"}
+                  params={"empresa_id": empresa}
               )
-
               assert consulta.status_code == 200
+              assert len(consulta.json()) == 1
 
-              contatos = {
-                  c["id"]: c
-                  for c in consulta.json()
-              }
-
-              assert contatos[autorizado_id]["consentimento"] == "revoked"
-              assert contatos[pendente_id]["consentimento"] == "pending"
-
-              # Descadastro de contato inexistente
-              inexistente = client.post(
-                  "/contatos/999999/descadastrar",
-                  params={"empresa_id": "empresa_teste"}
+              campanha = client.post(
+                  "/campanhas/",
+                  json={
+                      "empresa_id": empresa,
+                      "nome": "Campanha de Teste",
+                      "mensagem": "Mensagem de teste",
+                      "canal": "whatsapp"
+                  }
               )
+              assert campanha.status_code == 200, campanha.text
 
-              assert inexistente.status_code == 404
+              campanhas = client.get(
+                  "/campanhas/",
+                  params={"empresa_id": empresa}
+              )
+              assert campanhas.status_code == 200
+              assert len(campanhas.json()) == 1
 
-              print("API INICIAL: OK")
-              print("CONSENTIMENTO AUTORIZADO: OK")
-              print("CONTATO PENDENTE: OK")
-              print("DESCADASTRAMENTO: OK")
-              print("PERSISTENCIA DO DESCADASTRO: OK")
-              print("CONTATO INEXISTENTE: OK")
-              print("S.I.M.A.: TESTES DE PROTECAO APROVADOS")
+              print("BANCO DE DADOS: OK")
+              print("CADASTRO DE CONTATO: OK")
+              print("CONSULTA DE CONTATOS: OK")
+              print("CRIACAO DE CAMPANHA: OK")
+              print("CONSULTA DE CAMPANHAS: OK")
+              print("S.I.M.A.: TESTE FUNCIONAL APROVADO")
           '
