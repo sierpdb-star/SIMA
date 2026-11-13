@@ -46,3 +46,4 @@ def status():
         "api_campanhas": "integrada",
         "envios_automaticos": False
     }
+from app import content_models
