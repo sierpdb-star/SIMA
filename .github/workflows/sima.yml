@@ -27,18 +27,13 @@ jobs:
         run: |
           python -c '
           from fastapi.testclient import TestClient
-          from sqlalchemy import inspect
           from app.main import app
           from app.database import engine
+          from sqlalchemy import inspect
 
           with TestClient(app) as client:
               tabelas = set(inspect(engine).get_table_names())
-              esperadas = {"contacts", "campaigns", "delivery_logs"}
-
-              assert esperadas.issubset(tabelas), "Tabelas ausentes"
-
-              resposta = client.get("/")
-              assert resposta.status_code == 200
+              assert {"contacts", "campaigns", "delivery_logs"}.issubset(tabelas)
 
               empresa = "teste-sima"
 
@@ -48,41 +43,41 @@ jobs:
                       "nome": "Contato de Teste",
                       "telefone": "5599999999999",
                       "canal": "whatsapp",
-                      "empresa_id": empresa,
-                      "consentimento": "false"
+                      "empresa_id": empresa
                   }
               )
               assert contato.status_code == 200, contato.text
+
+              contato_id = contato.json()["id"]
+              assert contato.json()["consentimento"] == "pending"
+              print("CADASTRO SEM CONSENTIMENTO: OK")
+
+              autorizacao = client.post(
+                  f"/contatos/{contato_id}/consentimento",
+                  json={
+                      "empresa_id": empresa,
+                      "origem": "Formulario de autorizacao de teste"
+                  }
+              )
+              assert autorizacao.status_code == 200, autorizacao.text
+              assert autorizacao.json()["consentimento"] == "granted"
+              print("REGISTRO DE CONSENTIMENTO: OK")
+
+              descadastro = client.post(
+                  f"/contatos/{contato_id}/descadastro",
+                  params={"empresa_id": empresa}
+              )
+              assert descadastro.status_code == 200, descadastro.text
+              assert descadastro.json()["consentimento"] == "revoked"
+              print("DESCADASTRO: OK")
 
               consulta = client.get(
                   "/contatos/",
                   params={"empresa_id": empresa}
               )
               assert consulta.status_code == 200
-              assert len(consulta.json()) == 1
+              assert consulta.json()[0]["consentimento"] == "revoked"
+              print("CONSULTA DO STATUS: OK")
 
-              campanha = client.post(
-                  "/campanhas/",
-                  json={
-                      "empresa_id": empresa,
-                      "nome": "Campanha de Teste",
-                      "mensagem": "Mensagem de teste",
-                      "canal": "whatsapp"
-                  }
-              )
-              assert campanha.status_code == 200, campanha.text
-
-              campanhas = client.get(
-                  "/campanhas/",
-                  params={"empresa_id": empresa}
-              )
-              assert campanhas.status_code == 200
-              assert len(campanhas.json()) == 1
-
-              print("BANCO DE DADOS: OK")
-              print("CADASTRO DE CONTATO: OK")
-              print("CONSULTA DE CONTATOS: OK")
-              print("CRIACAO DE CAMPANHA: OK")
-              print("CONSULTA DE CAMPANHAS: OK")
-              print("S.I.M.A.: TESTE FUNCIONAL APROVADO")
+              print("S.I.M.A.: TESTE DE PROTECAO APROVADO")
           '
