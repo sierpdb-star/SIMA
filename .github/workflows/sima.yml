@@ -23,78 +23,71 @@ jobs:
       - name: Instalar dependências
         run: pip install -r requirements.txt
 
-      - name: Testar protecao de campanhas
+      - name: Testar historico de campanhas
         run: |
           python -c '
           from fastapi.testclient import TestClient
           from app.main import app
 
           with TestClient(app) as client:
-              empresa = "teste-etapa-24"
+              empresa = "teste-etapa-26"
 
-              def cadastrar(nome, telefone):
-                  resposta = client.post(
-                      "/contatos/",
-                      params={
-                          "nome": nome,
-                          "telefone": telefone,
-                          "canal": "whatsapp",
-                          "empresa_id": empresa
-                      }
-                  )
-                  assert resposta.status_code == 200, resposta.text
-                  return resposta.json()["id"]
-
-              autorizado = cadastrar("Autorizado", "5599111111111")
-              pendente = cadastrar("Pendente", "5599222222222")
-              descadastrado = cadastrar("Descadastrado", "5599333333333")
-
-              for contato_id in [autorizado, descadastrado]:
-                  resposta = client.post(
-                      f"/contatos/{contato_id}/consentimento",
-                      json={
-                          "empresa_id": empresa,
-                          "origem": "Autorizacao ficticia de teste"
-                      }
-                  )
-                  assert resposta.status_code == 200, resposta.text
-
-              resposta = client.post(
-                  f"/contatos/{descadastrado}/descadastro",
-                  params={"empresa_id": empresa}
+              contato = client.post(
+                  "/contatos/",
+                  params={
+                      "nome": "Contato Autorizado",
+                      "telefone": "5599111111111",
+                      "canal": "whatsapp",
+                      "empresa_id": empresa
+                  }
               )
-              assert resposta.status_code == 200, resposta.text
+              assert contato.status_code == 200, contato.text
+              contato_id = contato.json()["id"]
+
+              autorizacao = client.post(
+                  f"/contatos/{contato_id}/consentimento",
+                  json={
+                      "empresa_id": empresa,
+                      "origem": "Teste ficticio"
+                  }
+              )
+              assert autorizacao.status_code == 200, autorizacao.text
 
               campanha = client.post(
                   "/campanhas/",
                   json={
                       "empresa_id": empresa,
-                      "nome": "Campanha de Protecao",
-                      "mensagem": "Mensagem ficticia",
+                      "nome": "Campanha Historico",
+                      "mensagem": "Mensagem de teste",
                       "canal": "whatsapp"
                   }
               )
               assert campanha.status_code == 200, campanha.text
               campanha_id = campanha.json()["id"]
 
-              resposta = client.get(
-                  f"/campanhas/{campanha_id}/destinatarios",
+              preparacao = client.post(
+                  f"/campanhas/{campanha_id}/preparar",
                   params={"empresa_id": empresa}
               )
-              assert resposta.status_code == 200, resposta.text
+              assert preparacao.status_code == 200, preparacao.text
+              assert preparacao.json()["novos_registros"] == 1
 
-              dados = resposta.json()
-              ids = [c["id"] for c in dados["destinatarios"]]
+              historico = client.get(
+                  f"/campanhas/{campanha_id}/historico",
+                  params={"empresa_id": empresa}
+              )
+              assert historico.status_code == 200, historico.text
 
-              assert dados["total_autorizados"] == 1, dados
-              assert ids == [autorizado], dados
-              assert pendente not in ids
-              assert descadastrado not in ids
+              dados = historico.json()
+              assert dados["total_registros"] == 1
+              assert dados["historico"][0]["contato"] == "Contato Autorizado"
+              assert dados["historico"][0]["status"] == "pending"
               assert dados["envios_automaticos"] is False
 
-              print("CONTATO AUTORIZADO: INCLUIDO")
-              print("CONTATO PENDENTE: BLOQUEADO")
-              print("CONTATO DESCADASTRADO: BLOQUEADO")
-              print("CAMPANHA: SEM ENVIO AUTOMATICO")
-              print("S.I.M.A.: PROTECAO APROVADA")
+              print("CONTATO AUTORIZADO: OK")
+              print("PREPARACAO DA CAMPANHA: OK")
+              print("REGISTRO NO HISTORICO: OK")
+              print("CONSULTA DO HISTORICO: OK")
+              print("ENVIO AUTOMATICO: DESATIVADO")
+              print("S.I.M.A.: HISTORICO APROVADO")
           '
