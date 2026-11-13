@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.campaign_models import Campaign
+from app.models import Contact
 
 router = APIRouter(prefix="/campanhas", tags=["Campanhas"])
 
@@ -75,3 +76,42 @@ def listar_campanhas(
         }
         for c in campanhas
     ]
+
+
+@router.get("/{campanha_id}/destinatarios")
+def listar_destinatarios_autorizados(
+    campanha_id: int,
+    empresa_id: str,
+    banco: Session = Depends(obter_banco)
+):
+    campanha = banco.query(Campaign).filter_by(
+        id=campanha_id,
+        company_id=empresa_id
+    ).first()
+
+    if not campanha:
+        raise HTTPException(
+            status_code=404,
+            detail="Campanha não encontrada."
+        )
+
+    contatos = banco.query(Contact).filter_by(
+        company_id=empresa_id,
+        channel=campanha.channel,
+        consent_status="granted"
+    ).all()
+
+    return {
+        "campanha_id": campanha.id,
+        "total_autorizados": len(contatos),
+        "destinatarios": [
+            {
+                "id": contato.id,
+                "nome": contato.name,
+                "telefone": contato.phone,
+                "canal": contato.channel
+            }
+            for contato in contatos
+        ],
+        "envios_automaticos": False
+    }
