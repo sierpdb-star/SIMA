@@ -22,10 +22,11 @@ jobs:
 
       - name: Instalar dependências
         run: pip install -r requirements.txt
+      
       - name: Diagnosticar importacao
         run: |
-          python -c "import os, importlib.util; print('PASTA APP:', os.listdir('app')); print('ARQUIVO:', importlib.util.find_spec('app.content_models'))"
-          python -c "import app.content_models; print('IMPORTACAO OK')"
+          python -c "import os, sys, app, importlib.machinery; print('PYTHON:', sys.executable); print('APP:', app.__file__); print('APP PATH:', list(app.__path__)); print('ARQUIVO EXISTE:', os.path.isfile('app/content_models.py')); print('CAMINHO:', os.path.abspath('app/content_models.py')); print('SPEC DIRETO:', importlib.machinery.PathFinder.find_spec('content_models', app.__path__))"
+
       - name: Testar historico de campanhas
         run: |
           python -c '
