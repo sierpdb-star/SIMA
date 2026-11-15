@@ -22,19 +22,26 @@ jobs:
 
       - name: Instalar dependências
         run: pip install -r requirements.txt
-      
-      - name: Diagnosticar importacao
-        run: |
-          python -c "import os, sys, app, importlib.machinery; print('PYTHON:', sys.executable); print('APP:', app.__file__); print('APP PATH:', list(app.__path__)); print('ARQUIVO EXISTE:', os.path.isfile('app/content_models.py')); print('CAMINHO:', os.path.abspath('app/content_models.py')); print('SPEC DIRETO:', importlib.machinery.PathFinder.find_spec('content_models', app.__path__))"
 
-      - name: Testar historico de campanhas
+      - name: Diagnosticar arquivos
         run: |
-          python -c '
+          python -c "
+          import os
+          import sys
+          import app
+          print('PYTHON:', sys.version)
+          print('APP:', app.__file__)
+          print('CONTENT MODELS EXISTE:', os.path.isfile('app/content_models.py'))
+          "
+
+      - name: Testar campanhas, conteúdo e histórico
+        run: |
+          python - <<'PY'
           from fastapi.testclient import TestClient
           from app.main import app
 
           with TestClient(app) as client:
-              empresa = "teste-etapa-26"
+              empresa = "teste-sima-multimidia"
 
               contato = client.post(
                   "/contatos/",
@@ -57,17 +64,72 @@ jobs:
               )
               assert autorizacao.status_code == 200, autorizacao.text
 
-              campanha = client.post(
+              campanha_texto = client.post(
                   "/campanhas/",
                   json={
                       "empresa_id": empresa,
-                      "nome": "Campanha Historico",
-                      "mensagem": "Mensagem de teste",
+                      "nome": "Campanha de Texto",
+                      "mensagem": "Teste de mensagem do SIMA",
                       "canal": "whatsapp"
                   }
               )
-              assert campanha.status_code == 200, campanha.text
-              campanha_id = campanha.json()["id"]
+              assert campanha_texto.status_code == 200, campanha_texto.text
+
+              texto = campanha_texto.json()
+              assert texto["tipo_conteudo"] == "text"
+              assert texto["texto"] == "Teste de mensagem do SIMA"
+              assert texto["envios_automaticos"] is False
+
+              print("CAMPANHA DE TEXTO: OK")
+
+              campanha_imagem = client.post(
+                  "/campanhas/",
+                  json={
+                      "empresa_id": empresa,
+                      "nome": "Campanha com Imagem",
+                      "mensagem": "",
+                      "canal": "whatsapp",
+                      "tipo_conteudo": "image",
+                      "media_url": "https://exemplo.com/imagem-teste.jpg",
+                      "media_type": "image/jpeg",
+                      "legenda": "Conheça nossa oferta!"
+                  }
+              )
+              assert campanha_imagem.status_code == 200, campanha_imagem.text
+
+              imagem = campanha_imagem.json()
+              assert imagem["tipo_conteudo"] == "image"
+              assert imagem["media_url"] == "https://exemplo.com/imagem-teste.jpg"
+              assert imagem["media_type"] == "image/jpeg"
+              assert imagem["texto"] == "Conheça nossa oferta!"
+              assert imagem["envios_automaticos"] is False
+
+              print("CAMPANHA COM IMAGEM: OK")
+              print("LEGENDA DA IMAGEM: OK")
+
+              listagem = client.get(
+                  "/campanhas/",
+                  params={"empresa_id": empresa}
+              )
+              assert listagem.status_code == 200, listagem.text
+
+              campanhas = listagem.json()
+              assert len(campanhas) == 2
+
+              assert any(
+                  c["tipo_conteudo"] == "text"
+                  for c in campanhas
+              )
+
+              assert any(
+                  c["tipo_conteudo"] == "image"
+                  and c["texto"] == "Conheça nossa oferta!"
+                  for c in campanhas
+              )
+
+              print("LISTAGEM DE CAMPANHAS: OK")
+
+              campanha_id = texto["id"]
 
               preparacao = client.post(
                   f"/campanhas/{campanha_id}/preparar",
@@ -90,8 +152,7 @@ jobs:
 
               print("CONTATO AUTORIZADO: OK")
               print("PREPARACAO DA CAMPANHA: OK")
-              print("REGISTRO NO HISTORICO: OK")
-              print("CONSULTA DO HISTORICO: OK")
+              print("HISTORICO: OK")
               print("ENVIO AUTOMATICO: DESATIVADO")
-              print("S.I.M.A.: HISTORICO APROVADO")
-          '
+              print("S.I.M.A.: TESTES APROVADOS")
+          PY
