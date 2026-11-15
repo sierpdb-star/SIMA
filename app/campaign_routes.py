@@ -1,12 +1,11 @@
 
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.campaign_models import Campaign
+from app.content_models import CampaignContent
 from app.models import Contact
 from app.delivery_models import DeliveryLog
 
@@ -24,8 +23,12 @@ def obter_banco():
 class NovaCampanha(BaseModel):
     empresa_id: str
     nome: str
-    mensagem: str
+    mensagem: str = ""
     canal: str
+    tipo_conteudo: str = "text"
+    media_url: str | None = None
+    media_type: str | None = None
+    legenda: str | None = None
 
 
 @router.post("/")
@@ -33,30 +36,71 @@ def criar_campanha(
     dados: NovaCampanha,
     banco: Session = Depends(obter_banco)
 ):
-    if not dados.nome.strip() or not dados.mensagem.strip():
+    if not dados.nome.strip():
         raise HTTPException(
             status_code=400,
-            detail="Nome e mensagem são obrigatórios."
+            detail="O nome da campanha é obrigatório."
+        )
+
+    tipo = dados.tipo_conteudo.strip().lower()
+
+    if tipo not in ["text", "image"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Tipo de conteúdo inválido. Use text ou image."
+        )
+
+    if tipo == "text" and not dados.mensagem.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="A mensagem da campanha é obrigatória."
+        )
+
+    if tipo == "image" and not dados.media_url:
+        raise HTTPException(
+            status_code=400,
+            detail="Informe a URL da imagem."
         )
 
     campanha = Campaign(
         company_id=dados.empresa_id,
         name=dados.nome,
-        message=dados.mensagem,
+        message=dados.mensagem or dados.legenda or "",
         channel=dados.canal,
         status="draft"
     )
 
     banco.add(campanha)
+    banco.flush()
+
+    conteudo = CampaignContent(
+        campaign_id=campanha.id,
+        content_type=tipo,
+        text_content=(
+            dados.legenda
+            if tipo == "image"
+            else dados.mensagem
+        ),
+        media_url=dados.media_url if tipo == "image" else None,
+        media_type=dados.media_type if tipo == "image" else None
+    )
+
+    banco.add(conteudo)
     banco.commit()
     banco.refresh(campanha)
+    banco.refresh(conteudo)
 
     return {
         "mensagem": "Campanha criada como rascunho!",
         "id": campanha.id,
         "nome": campanha.name,
         "canal": campanha.channel,
-        "status": campanha.status
+        "status": campanha.status,
+        "tipo_conteudo": conteudo.content_type,
+        "texto": conteudo.text_content,
+        "media_url": conteudo.media_url,
+        "media_type": conteudo.media_type,
+        "envios_automaticos": False
     }
 
 
@@ -69,16 +113,30 @@ def listar_campanhas(
         company_id=empresa_id
     ).all()
 
-    return [
-        {
-            "id": c.id,
-            "nome": c.name,
-            "mensagem": c.message,
-            "canal": c.channel,
-            "status": c.status
-        }
-        for c in campanhas
-    ]
+    resultado = []
+
+    for campanha in campanhas:
+        conteudo = banco.query(CampaignContent).filter_by(
+            campaign_id=campanha.id
+        ).first()
+
+        resultado.append({
+            "id": campanha.id,
+            "nome": campanha.name,
+            "mensagem": campanha.message,
+            "canal": campanha.channel,
+            "status": campanha.status,
+            "tipo_conteudo": (
+                conteudo.content_type if conteudo else "text"
+            ),
+            "texto": (
+                conteudo.text_content if conteudo else campanha.message
+            ),
+            "media_url": conteudo.media_url if conteudo else None,
+            "media_type": conteudo.media_type if conteudo else None
+        })
+
+    return resultado
 
 
 @router.get("/{campanha_id}/destinatarios")
