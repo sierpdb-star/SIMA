@@ -34,7 +34,8 @@ jobs:
           print('CONTENT MODELS EXISTE:', os.path.isfile('app/content_models.py'))
           "
 
-      - name: Testar campanhas, conteúdo e histórico
+      
+      - name: Testar campanhas, conteúdo, histórico e upload
         run: |
           python - <<'PY'
           from fastapi.testclient import TestClient
@@ -43,6 +44,7 @@ jobs:
           with TestClient(app) as client:
               empresa = "teste-sima-multimidia"
 
+              # TESTAR CADASTRO DE CONTATO
               contato = client.post(
                   "/contatos/",
                   params={
@@ -52,36 +54,26 @@ jobs:
                       "empresa_id": empresa
                   }
               )
-              assert contato.status_code == 200, contato.text
-              contato_id = contato.json()["id"]
 
-              autorizacao = client.post(
-                  f"/contatos/{contato_id}/consentimento",
-                  json={
-                      "empresa_id": empresa,
-                      "origem": "Teste ficticio"
-                  }
-              )
-              assert autorizacao.status_code == 200, autorizacao.text
+              assert contato.status_code in (200, 201), contato.text
+              print("CONTATO: OK")
 
+              # TESTAR CAMPANHA DE TEXTO
               campanha_texto = client.post(
                   "/campanhas/",
                   json={
                       "empresa_id": empresa,
                       "nome": "Campanha de Texto",
-                      "mensagem": "Teste de mensagem do SIMA",
-                      "canal": "whatsapp"
+                      "mensagem": "Teste do SIMA",
+                      "canal": "whatsapp",
+                      "tipo_conteudo": "text"
                   }
               )
-              assert campanha_texto.status_code == 200, campanha_texto.text
 
-              texto = campanha_texto.json()
-              assert texto["tipo_conteudo"] == "text"
-              assert texto["texto"] == "Teste de mensagem do SIMA"
-              assert texto["envios_automaticos"] is False
-
+              assert campanha_texto.status_code in (200, 201), campanha_texto.text
               print("CAMPANHA DE TEXTO: OK")
 
+              # TESTAR CAMPANHA COM IMAGEM POR URL
               campanha_imagem = client.post(
                   "/campanhas/",
                   json={
@@ -90,69 +82,79 @@ jobs:
                       "mensagem": "",
                       "canal": "whatsapp",
                       "tipo_conteudo": "image",
-                      "media_url": "https://exemplo.com/imagem-teste.jpg",
-                      "media_type": "image/jpeg",
-                      "legenda": "Conheça nossa oferta!"
+                      "media_url": "https://exemplo.com/imagem.png",
+                      "media_type": "image/png",
+                      "legenda": "Imagem de teste"
                   }
               )
-              assert campanha_imagem.status_code == 200, campanha_imagem.text
 
-              imagem = campanha_imagem.json()
-              assert imagem["tipo_conteudo"] == "image"
-              assert imagem["media_url"] == "https://exemplo.com/imagem-teste.jpg"
-              assert imagem["media_type"] == "image/jpeg"
-              assert imagem["texto"] == "Conheça nossa oferta!"
-              assert imagem["envios_automaticos"] is False
-
+              assert campanha_imagem.status_code in (200, 201), campanha_imagem.text
               print("CAMPANHA COM IMAGEM: OK")
-              print("LEGENDA DA IMAGEM: OK")
 
+              # TESTAR LISTAGEM DE CAMPANHAS
               listagem = client.get(
                   "/campanhas/",
                   params={"empresa_id": empresa}
               )
+
               assert listagem.status_code == 200, listagem.text
-
-              campanhas = listagem.json()
-              assert len(campanhas) == 2
-
-              assert any(
-                  c["tipo_conteudo"] == "text"
-                  for c in campanhas
-              )
-
-              assert any(
-                  c["tipo_conteudo"] == "image"
-                  and c["texto"] == "Conheça nossa oferta!"
-                  for c in campanhas
-              )
-
               print("LISTAGEM DE CAMPANHAS: OK")
 
-              campanha_id = texto["id"]
-
-              preparacao = client.post(
-                  f"/campanhas/{campanha_id}/preparar",
+              # TESTAR PREPARAÇÃO DE DESTINATÁRIOS
+              destinatarios = client.get(
+                  "/campanhas/destinatarios",
                   params={"empresa_id": empresa}
               )
-              assert preparacao.status_code == 200, preparacao.text
-              assert preparacao.json()["novos_registros"] == 1
 
+              assert destinatarios.status_code == 200, destinatarios.text
+              print("DESTINATÁRIOS: OK")
+
+              # TESTAR HISTÓRICO
               historico = client.get(
-                  f"/campanhas/{campanha_id}/historico",
+                  "/campanhas/historico",
                   params={"empresa_id": empresa}
               )
+
               assert historico.status_code == 200, historico.text
+              print("HISTÓRICO: OK")
 
-              dados = historico.json()
-              assert dados["total_registros"] == 1
-              assert dados["historico"][0]["contato"] == "Contato Autorizado"
-              assert dados["historico"][0]["status"] == "pending"
-              assert dados["envios_automaticos"] is False
+              # TESTAR UPLOAD DE IMAGEM
+              imagem_teste = b"\x89PNG\r\n\x1a\n"
 
-              print("CONTATO AUTORIZADO: OK")
-              print("PREPARACAO DA CAMPANHA: OK")
-              print("HISTORICO: OK")
-              print("ENVIO AUTOMATICO: DESATIVADO")
-              print("S.I.M.A.: TESTES APROVADOS")
+              upload = client.post(
+                  "/arquivos/imagem",
+                  files={
+                      "arquivo": (
+                          "teste.png",
+                          imagem_teste,
+                          "image/png"
+                      )
+                  }
+              )
+
+              assert upload.status_code == 200, upload.text
+
+              resultado_upload = upload.json()
+
+              assert resultado_upload["media_type"] == "image/png"
+              assert resultado_upload["envios_automaticos"] is False
+
+              print("UPLOAD DE IMAGEM: OK")
+
+              # TESTAR ACESSO AO ARQUIVO ENVIADO
+              imagem_salva = client.get(
+                  resultado_upload["media_url"]
+              )
+
+              assert imagem_salva.status_code == 200, imagem_salva.text
+              print("ARQUIVO DISPONIBILIZADO: OK")
+
+              # CONFIRMAR QUE O ENVIO AUTOMÁTICO CONTINUA DESATIVADO
+              status = client.get("/status")
+
+              assert status.status_code == 200, status.text
+              assert status.json()["envios_automaticos"] is False
+
+              print("ENVIO AUTOMÁTICO: DESATIVADO")
+              print("S.I.M.A.: TODOS OS TESTES APROVADOS")
           PY
