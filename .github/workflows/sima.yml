@@ -36,11 +36,44 @@ jobs:
 
       
       
-      - name: Testar campanhas, conteúdo, histórico e upload
+      
+      - name: Testar campanhas, conteúdo, histórico e upload integrado
         run: |
           python - <<'PY'
+          import struct
+          import zlib
+          import binascii
+
           from fastapi.testclient import TestClient
           from app.main import app
+
+          def criar_png_valido():
+              def bloco(tipo, dados):
+                  crc = binascii.crc32(tipo + dados) & 0xffffffff
+                  return (
+                      struct.pack(">I", len(dados))
+                      + tipo
+                      + dados
+                      + struct.pack(">I", crc)
+                  )
+
+              assinatura = b"\x89PNG\r\n\x1a\n"
+
+              cabecalho = struct.pack(
+                  ">IIBBBBB",
+                  1, 1, 8, 2, 0, 0, 0
+              )
+
+              dados_imagem = zlib.compress(
+                  b"\x00\x00\xff\x00"
+              )
+
+              return (
+                  assinatura
+                  + bloco(b"IHDR", cabecalho)
+                  + bloco(b"IDAT", dados_imagem)
+                  + bloco(b"IEND", b"")
+              )
 
           with TestClient(app) as client:
               empresa = "teste-sima-multimidia"
@@ -75,25 +108,7 @@ jobs:
               id_campanha = campanha_texto.json()["id"]
               print("CAMPANHA DE TEXTO: OK")
 
-              # 3. CRIAR CAMPANHA COM IMAGEM
-              campanha_imagem = client.post(
-                  "/campanhas/",
-                  json={
-                      "empresa_id": empresa,
-                      "nome": "Campanha com Imagem",
-                      "mensagem": "",
-                      "canal": "whatsapp",
-                      "tipo_conteudo": "image",
-                      "media_url": "https://exemplo.com/imagem.png",
-                      "media_type": "image/png",
-                      "legenda": "Imagem de teste"
-                  }
-              )
-
-              assert campanha_imagem.status_code in (200, 201), campanha_imagem.text
-              print("CAMPANHA COM IMAGEM: OK")
-
-              # 4. LISTAR CAMPANHAS
+              # 3. LISTAR CAMPANHAS
               listagem = client.get(
                   "/campanhas/",
                   params={"empresa_id": empresa}
@@ -102,25 +117,25 @@ jobs:
               assert listagem.status_code == 200, listagem.text
               print("LISTAGEM DE CAMPANHAS: OK")
 
-              # 5. LISTAR DESTINATÁRIOS AUTORIZADOS
+              # 4. TESTAR DESTINATÁRIOS
               destinatarios = client.get(
                   f"/campanhas/{id_campanha}/destinatarios",
                   params={"empresa_id": empresa}
               )
 
               assert destinatarios.status_code == 200, destinatarios.text
-              print("DESTINATÁRIOS AUTORIZADOS: OK")
+              print("DESTINATÁRIOS: OK")
 
-              # 6. PREPARAR DESTINATÁRIOS
+              # 5. PREPARAR DESTINATÁRIOS
               preparacao = client.post(
                   f"/campanhas/{id_campanha}/preparar",
                   params={"empresa_id": empresa}
               )
 
               assert preparacao.status_code == 200, preparacao.text
-              print("PREPARAÇÃO DE DESTINATÁRIOS: OK")
+              print("PREPARAÇÃO: OK")
 
-              # 7. CONSULTAR HISTÓRICO
+              # 6. CONSULTAR HISTÓRICO
               historico = client.get(
                   f"/campanhas/{id_campanha}/historico",
                   params={"empresa_id": empresa}
@@ -129,9 +144,10 @@ jobs:
               assert historico.status_code == 200, historico.text
               print("HISTÓRICO: OK")
 
-              # 8. TESTAR UPLOAD DE IMAGEM
-              imagem_teste = b"\x89PNG\r\n\x1a\n"
+              # 7. CRIAR UMA IMAGEM PNG VÁLIDA
+              imagem_teste = criar_png_valido()
 
+              # 8. ENVIAR A IMAGEM
               upload = client.post(
                   "/arquivos/imagem",
                   files={
@@ -146,25 +162,73 @@ jobs:
               assert upload.status_code == 200, upload.text
 
               resultado_upload = upload.json()
+              media_url = resultado_upload["media_url"]
 
               assert resultado_upload["media_type"] == "image/png"
               assert resultado_upload["envios_automaticos"] is False
+
               print("UPLOAD DE IMAGEM: OK")
 
-              # 9. VERIFICAR ARQUIVO DISPONIBILIZADO
-              imagem_salva = client.get(
-                  resultado_upload["media_url"]
-              )
+              # 9. VERIFICAR SE A IMAGEM ESTÁ DISPONÍVEL
+              imagem_salva = client.get(media_url)
 
               assert imagem_salva.status_code == 200, imagem_salva.text
-              print("ARQUIVO DISPONIBILIZADO: OK")
+              assert imagem_salva.content == imagem_teste
 
-              # 10. CONFIRMAR ENVIO AUTOMÁTICO DESATIVADO
+              print("IMAGEM DISPONIBILIZADA: OK")
+
+              # 10. USAR A IMAGEM ENVIADA EM UMA CAMPANHA
+              campanha_imagem = client.post(
+                  "/campanhas/",
+                  json={
+                      "empresa_id": empresa,
+                      "nome": "Campanha com Upload",
+                      "mensagem": "",
+                      "canal": "whatsapp",
+                      "tipo_conteudo": "image",
+                      "media_url": media_url,
+                      "media_type": "image/png",
+                      "legenda": "Imagem enviada pelo SIMA"
+                  }
+              )
+
+              assert campanha_imagem.status_code in (200, 201), campanha_imagem.text
+
+              dados_campanha = campanha_imagem.json()
+
+              assert dados_campanha["media_url"] == media_url
+              assert dados_campanha["tipo_conteudo"] == "image"
+
+              print("CAMPANHA COM IMAGEM ENVIADA: OK")
+
+              # 11. CONFERIR SE A CAMPANHA GUARDOU A IMAGEM
+              campanhas = client.get(
+                  "/campanhas/",
+                  params={"empresa_id": empresa}
+              )
+
+              assert campanhas.status_code == 200, campanhas.text
+
+              campanha_encontrada = next(
+                  (
+                      c for c in campanhas.json()
+                      if c["nome"] == "Campanha com Upload"
+                  ),
+                  None
+              )
+
+              assert campanha_encontrada is not None
+              assert campanha_encontrada["media_url"] == media_url
+              assert campanha_encontrada["tipo_conteudo"] == "image"
+
+              print("IMAGEM VINCULADA À CAMPANHA: OK")
+
+              # 12. CONFIRMAR ENVIO AUTOMÁTICO DESATIVADO
               status = client.get("/status")
 
               assert status.status_code == 200, status.text
               assert status.json()["envios_automaticos"] is False
 
               print("ENVIO AUTOMÁTICO: DESATIVADO")
-              print("S.I.M.A.: TODOS OS TESTES APROVADOS")
+              print("S.I.M.A.: UPLOAD E CAMPANHA INTEGRADOS COM SUCESSO")
           PY
