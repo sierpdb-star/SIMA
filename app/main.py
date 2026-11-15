@@ -1,3 +1,6 @@
+
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
@@ -15,7 +18,12 @@ from app.upload_routes import router as upload_router, PASTA_UPLOADS
 app = FastAPI(
     title="S.I.M.A.",
     description="Sistema Inteligente de Mensagens Automatizadas",
-    version="0.5.0"
+    version="0.6.0"
+)
+
+
+PASTA_DASHBOARD = (
+    Path(__file__).resolve().parent.parent / "dashboard"
 )
 
 
@@ -24,14 +32,28 @@ def inicializar_sistema():
     criar_banco()
 
 
+# ROTAS DA API
 app.include_router(contact_router)
 app.include_router(campaign_router)
 app.include_router(upload_router)
 
+
+# ARQUIVOS ENVIADOS
 app.mount(
     "/uploads",
     StaticFiles(directory=str(PASTA_UPLOADS)),
     name="uploads"
+)
+
+
+# PAINEL DO SIMA
+app.mount(
+    "/painel",
+    StaticFiles(
+        directory=str(PASTA_DASHBOARD),
+        html=True
+    ),
+    name="painel"
 )
 
 
@@ -40,8 +62,9 @@ def inicio():
     return {
         "projeto": "S.I.M.A.",
         "status": "online",
-        "versao": "0.5.0",
-        "mensagem": "Sistema iniciado com sucesso!"
+        "versao": "0.6.0",
+        "mensagem": "Sistema iniciado com sucesso!",
+        "painel": "/painel/"
     }
 
 
@@ -54,5 +77,6 @@ def status():
         "api_contatos": "integrada",
         "api_campanhas": "integrada",
         "api_upload": "integrada",
+        "painel": "integrado",
         "envios_automaticos": False
     }
