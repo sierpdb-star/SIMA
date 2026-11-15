@@ -1,0 +1,245 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>S.I.M.A. | Nova campanha</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #101827;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: 25px auto;
+      padding: 22px;
+      background: #1d293b;
+      border-radius: 18px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #42d392;
+    }
+
+    p {
+      color: #b8c5d6;
+      text-align: center;
+    }
+
+    label {
+      display: block;
+      margin-top: 18px;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    input, select, textarea, button {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid #46546a;
+      border-radius: 9px;
+      font-size: 16px;
+    }
+
+    input, select, textarea {
+      background: #101827;
+      color: white;
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    button {
+      margin-top: 20px;
+      border: none;
+      background: #42d392;
+      color: #10251d;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: wait;
+    }
+
+    #preview {
+      display: none;
+      width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+      margin-top: 15px;
+      border-radius: 10px;
+      background: #101827;
+    }
+
+    #resultado {
+      margin-top: 18px;
+      padding: 12px;
+      border-radius: 8px;
+      overflow-wrap: anywhere;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <h1>S.I.M.A.</h1>
+    <p>Sistema Inteligente de Mensagens Automatizadas</p>
+
+    <form id="formCampanha">
+
+      <label for="empresa">Identificação da empresa</label>
+      <input id="empresa" required
+        placeholder="Ex.: minha-empresa">
+
+      <label for="nome">Nome da campanha</label>
+      <input id="nome" required
+        placeholder="Ex.: Promoção de novembro">
+
+      <label for="canal">Canal</label>
+      <select id="canal" required>
+        <option value="whatsapp">WhatsApp</option>
+      </select>
+
+      <label for="imagem">Escolher imagem da galeria</label>
+      <input
+        id="imagem"
+        type="file"
+        accept="image/jpeg,image/png"
+        required
+      >
+
+      <img id="preview" alt="Prévia da imagem">
+
+      <label for="legenda">Legenda da campanha</label>
+      <textarea id="legenda"
+        placeholder="Escreva a mensagem que acompanhará a imagem..."></textarea>
+
+      <button id="btnEnviar" type="submit">
+        Enviar imagem e criar campanha
+      </button>
+
+      <div id="resultado" role="status"></div>
+
+    </form>
+  </main>
+
+  <script>
+    const form = document.getElementById("formCampanha");
+    const campoImagem = document.getElementById("imagem");
+    const preview = document.getElementById("preview");
+    const resultado = document.getElementById("resultado");
+    const botao = document.getElementById("btnEnviar");
+
+    campoImagem.addEventListener("change", () => {
+      const arquivo = campoImagem.files[0];
+
+      if (!arquivo) {
+        preview.style.display = "none";
+        return;
+      }
+
+      if (!["image/jpeg", "image/png"].includes(arquivo.type)) {
+        alert("Escolha uma imagem JPG ou PNG.");
+        campoImagem.value = "";
+        preview.style.display = "none";
+        return;
+      }
+
+      if (arquivo.size > 5 * 1024 * 1024) {
+        alert("A imagem deve ter no máximo 5 MB.");
+        campoImagem.value = "";
+        preview.style.display = "none";
+        return;
+      }
+
+      preview.src = URL.createObjectURL(arquivo);
+      preview.style.display = "block";
+    });
+
+    form.addEventListener("submit", async (evento) => {
+      evento.preventDefault();
+
+      const arquivo = campoImagem.files[0];
+
+      if (!arquivo) {
+        alert("Selecione uma imagem.");
+        return;
+      }
+
+      botao.disabled = true;
+      resultado.textContent = "Enviando imagem...";
+      
+      try {
+        const dados = new FormData();
+        dados.append("arquivo", arquivo);
+
+        const respostaUpload = await fetch("/arquivos/imagem", {
+          method: "POST",
+          body: dados
+        });
+
+        if (!respostaUpload.ok) {
+          throw new Error(await respostaUpload.text());
+        }
+
+        const upload = await respostaUpload.json();
+
+        resultado.textContent = "Imagem enviada! Criando campanha...";
+
+        const campanha = {
+          empresa_id: document.getElementById("empresa").value.trim(),
+          nome: document.getElementById("nome").value.trim(),
+          mensagem: "",
+          canal: document.getElementById("canal").value,
+          tipo_conteudo: "image",
+          media_url: upload.media_url,
+          media_type: upload.media_type,
+          legenda: document.getElementById("legenda").value.trim()
+        };
+
+        const respostaCampanha = await fetch("/campanhas/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(campanha)
+        });
+
+        if (!respostaCampanha.ok) {
+          throw new Error(await respostaCampanha.text());
+        }
+
+        const criada = await respostaCampanha.json();
+
+        resultado.textContent =
+          "Campanha criada com sucesso! ID: " + criada.id;
+
+        form.reset();
+        preview.style.display = "none";
+
+      } catch (erro) {
+        resultado.textContent =
+          "Não foi possível concluir: " + erro.message;
+      } finally {
+        botao.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
