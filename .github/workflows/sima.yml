@@ -35,6 +35,7 @@ jobs:
           "
 
       
+      
       - name: Testar campanhas, conteúdo, histórico e upload
         run: |
           python - <<'PY'
@@ -44,7 +45,7 @@ jobs:
           with TestClient(app) as client:
               empresa = "teste-sima-multimidia"
 
-              # TESTAR CADASTRO DE CONTATO
+              # 1. CADASTRAR CONTATO
               contato = client.post(
                   "/contatos/",
                   params={
@@ -58,7 +59,7 @@ jobs:
               assert contato.status_code in (200, 201), contato.text
               print("CONTATO: OK")
 
-              # TESTAR CAMPANHA DE TEXTO
+              # 2. CRIAR CAMPANHA DE TEXTO
               campanha_texto = client.post(
                   "/campanhas/",
                   json={
@@ -71,9 +72,10 @@ jobs:
               )
 
               assert campanha_texto.status_code in (200, 201), campanha_texto.text
+              id_campanha = campanha_texto.json()["id"]
               print("CAMPANHA DE TEXTO: OK")
 
-              # TESTAR CAMPANHA COM IMAGEM POR URL
+              # 3. CRIAR CAMPANHA COM IMAGEM
               campanha_imagem = client.post(
                   "/campanhas/",
                   json={
@@ -91,7 +93,7 @@ jobs:
               assert campanha_imagem.status_code in (200, 201), campanha_imagem.text
               print("CAMPANHA COM IMAGEM: OK")
 
-              # TESTAR LISTAGEM DE CAMPANHAS
+              # 4. LISTAR CAMPANHAS
               listagem = client.get(
                   "/campanhas/",
                   params={"empresa_id": empresa}
@@ -100,25 +102,34 @@ jobs:
               assert listagem.status_code == 200, listagem.text
               print("LISTAGEM DE CAMPANHAS: OK")
 
-              # TESTAR PREPARAÇÃO DE DESTINATÁRIOS
+              # 5. LISTAR DESTINATÁRIOS AUTORIZADOS
               destinatarios = client.get(
-                  "/campanhas/destinatarios",
+                  f"/campanhas/{id_campanha}/destinatarios",
                   params={"empresa_id": empresa}
               )
 
               assert destinatarios.status_code == 200, destinatarios.text
-              print("DESTINATÁRIOS: OK")
+              print("DESTINATÁRIOS AUTORIZADOS: OK")
 
-              # TESTAR HISTÓRICO
+              # 6. PREPARAR DESTINATÁRIOS
+              preparacao = client.post(
+                  f"/campanhas/{id_campanha}/preparar",
+                  params={"empresa_id": empresa}
+              )
+
+              assert preparacao.status_code == 200, preparacao.text
+              print("PREPARAÇÃO DE DESTINATÁRIOS: OK")
+
+              # 7. CONSULTAR HISTÓRICO
               historico = client.get(
-                  "/campanhas/historico",
+                  f"/campanhas/{id_campanha}/historico",
                   params={"empresa_id": empresa}
               )
 
               assert historico.status_code == 200, historico.text
               print("HISTÓRICO: OK")
 
-              # TESTAR UPLOAD DE IMAGEM
+              # 8. TESTAR UPLOAD DE IMAGEM
               imagem_teste = b"\x89PNG\r\n\x1a\n"
 
               upload = client.post(
@@ -138,10 +149,9 @@ jobs:
 
               assert resultado_upload["media_type"] == "image/png"
               assert resultado_upload["envios_automaticos"] is False
-
               print("UPLOAD DE IMAGEM: OK")
 
-              # TESTAR ACESSO AO ARQUIVO ENVIADO
+              # 9. VERIFICAR ARQUIVO DISPONIBILIZADO
               imagem_salva = client.get(
                   resultado_upload["media_url"]
               )
@@ -149,7 +159,7 @@ jobs:
               assert imagem_salva.status_code == 200, imagem_salva.text
               print("ARQUIVO DISPONIBILIZADO: OK")
 
-              # CONFIRMAR QUE O ENVIO AUTOMÁTICO CONTINUA DESATIVADO
+              # 10. CONFIRMAR ENVIO AUTOMÁTICO DESATIVADO
               status = client.get("/status")
 
               assert status.status_code == 200, status.text
