@@ -34,10 +34,7 @@ jobs:
           print('CONTENT MODELS EXISTE:', os.path.isfile('app/content_models.py'))
           "
 
-      
-      
-      
-      - name: Testar campanhas, conteúdo, histórico e upload integrado
+      - name: Testar campanhas, conteúdo, histórico, upload e painel
         run: |
           python - <<'PY'
           import struct
@@ -76,9 +73,21 @@ jobs:
               )
 
           with TestClient(app) as client:
+
+              # 1. TESTAR PAINEL
+              painel = client.get("/painel/")
+
+              assert painel.status_code == 200, painel.text
+              assert "text/html" in painel.headers.get(
+                  "content-type", ""
+              )
+              assert "<html" in painel.text.lower()
+
+              print("PAINEL WEB: OK")
+
               empresa = "teste-sima-multimidia"
 
-              # 1. CADASTRAR CONTATO
+              # 2. CADASTRAR CONTATO
               contato = client.post(
                   "/contatos/",
                   params={
@@ -92,7 +101,7 @@ jobs:
               assert contato.status_code in (200, 201), contato.text
               print("CONTATO: OK")
 
-              # 2. CRIAR CAMPANHA DE TEXTO
+              # 3. CRIAR CAMPANHA DE TEXTO
               campanha_texto = client.post(
                   "/campanhas/",
                   json={
@@ -108,7 +117,7 @@ jobs:
               id_campanha = campanha_texto.json()["id"]
               print("CAMPANHA DE TEXTO: OK")
 
-              # 3. LISTAR CAMPANHAS
+              # 4. LISTAR CAMPANHAS
               listagem = client.get(
                   "/campanhas/",
                   params={"empresa_id": empresa}
@@ -117,7 +126,7 @@ jobs:
               assert listagem.status_code == 200, listagem.text
               print("LISTAGEM DE CAMPANHAS: OK")
 
-              # 4. TESTAR DESTINATÁRIOS
+              # 5. TESTAR DESTINATÁRIOS
               destinatarios = client.get(
                   f"/campanhas/{id_campanha}/destinatarios",
                   params={"empresa_id": empresa}
@@ -126,7 +135,7 @@ jobs:
               assert destinatarios.status_code == 200, destinatarios.text
               print("DESTINATÁRIOS: OK")
 
-              # 5. PREPARAR DESTINATÁRIOS
+              # 6. PREPARAR DESTINATÁRIOS
               preparacao = client.post(
                   f"/campanhas/{id_campanha}/preparar",
                   params={"empresa_id": empresa}
@@ -135,7 +144,7 @@ jobs:
               assert preparacao.status_code == 200, preparacao.text
               print("PREPARAÇÃO: OK")
 
-              # 6. CONSULTAR HISTÓRICO
+              # 7. CONSULTAR HISTÓRICO
               historico = client.get(
                   f"/campanhas/{id_campanha}/historico",
                   params={"empresa_id": empresa}
@@ -144,10 +153,10 @@ jobs:
               assert historico.status_code == 200, historico.text
               print("HISTÓRICO: OK")
 
-              # 7. CRIAR UMA IMAGEM PNG VÁLIDA
+              # 8. CRIAR UMA IMAGEM PNG VÁLIDA
               imagem_teste = criar_png_valido()
 
-              # 8. ENVIAR A IMAGEM
+              # 9. ENVIAR A IMAGEM
               upload = client.post(
                   "/arquivos/imagem",
                   files={
@@ -169,7 +178,7 @@ jobs:
 
               print("UPLOAD DE IMAGEM: OK")
 
-              # 9. VERIFICAR SE A IMAGEM ESTÁ DISPONÍVEL
+              # 10. VERIFICAR SE A IMAGEM ESTÁ DISPONÍVEL
               imagem_salva = client.get(media_url)
 
               assert imagem_salva.status_code == 200, imagem_salva.text
@@ -177,7 +186,7 @@ jobs:
 
               print("IMAGEM DISPONIBILIZADA: OK")
 
-              # 10. USAR A IMAGEM ENVIADA EM UMA CAMPANHA
+              # 11. USAR A IMAGEM ENVIADA EM UMA CAMPANHA
               campanha_imagem = client.post(
                   "/campanhas/",
                   json={
@@ -201,7 +210,7 @@ jobs:
 
               print("CAMPANHA COM IMAGEM ENVIADA: OK")
 
-              # 11. CONFERIR SE A CAMPANHA GUARDOU A IMAGEM
+              # 12. CONFERIR SE A CAMPANHA GUARDOU A IMAGEM
               campanhas = client.get(
                   "/campanhas/",
                   params={"empresa_id": empresa}
@@ -223,12 +232,12 @@ jobs:
 
               print("IMAGEM VINCULADA À CAMPANHA: OK")
 
-              # 12. CONFIRMAR ENVIO AUTOMÁTICO DESATIVADO
+              # 13. CONFIRMAR ENVIO AUTOMÁTICO DESATIVADO
               status = client.get("/status")
 
               assert status.status_code == 200, status.text
               assert status.json()["envios_automaticos"] is False
 
               print("ENVIO AUTOMÁTICO: DESATIVADO")
-              print("S.I.M.A.: UPLOAD E CAMPANHA INTEGRADOS COM SUCESSO")
+              print("S.I.M.A.: PAINEL, UPLOAD E CAMPANHAS INTEGRADOS COM SUCESSO")
           PY
