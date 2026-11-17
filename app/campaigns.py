@@ -55,6 +55,13 @@ def listar_campanhas(empresa_id: str = None):
 @router.get("/historico")
 def listar_historico():
     return historico
+@router.get("/{campanha_id}/historico")
+def historico_campanha(campanha_id: int):
+    return [
+        
+        item for item in historico
+        if item["campanha_id"] == campanha_id
+    ]
 
 
 @router.get("/{campanha_id}/destinatarios")
