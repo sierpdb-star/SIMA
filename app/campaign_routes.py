@@ -8,6 +8,7 @@ from app.campaign_models import Campaign
 from app.content_models import CampaignContent
 from app.models import Contact
 from app.delivery_models import DeliveryLog
+from app.delivery_service import verificar_elegibilidade
 
 router = APIRouter(prefix="/campanhas", tags=["Campanhas"])
 
@@ -29,6 +30,20 @@ class NovaCampanha(BaseModel):
     media_url: str | None = None
     media_type: str | None = None
     legenda: str | None = None
+
+
+def obter_contatos_elegiveis(banco, campanha):
+    contatos = banco.query(Contact).filter_by(
+        company_id=campanha.company_id
+    ).all()
+
+    return [
+        contato
+        for contato in contatos
+        if verificar_elegibilidade(
+            campanha, contato
+        )["autorizado"]
+    ]
 
 
 @router.post("/")
@@ -156,11 +171,7 @@ def listar_destinatarios_autorizados(
             detail="Campanha não encontrada."
         )
 
-    contatos = banco.query(Contact).filter_by(
-        company_id=empresa_id,
-        channel=campanha.channel,
-        consent_status="granted"
-    ).all()
+    contatos = obter_contatos_elegiveis(banco, campanha)
 
     return {
         "campanha_id": campanha.id,
@@ -195,11 +206,7 @@ def preparar_historico(
             detail="Campanha não encontrada."
         )
 
-    contatos = banco.query(Contact).filter_by(
-        company_id=empresa_id,
-        channel=campanha.channel,
-        consent_status="granted"
-    ).all()
+    contatos = obter_contatos_elegiveis(banco, campanha)
 
     novos_registros = 0
 
