@@ -4,6 +4,7 @@ from pathlib import Path
 
 from .campaigns import router as campaigns_router
 from .app.contacts import router as contacts_router
+from .media import router as media_router
 
 app = FastAPI(title="S.I.M.A.")
 
@@ -12,7 +13,7 @@ PAINEL = BASE_DIR / "dashboard" / "index.html"
 
 app.include_router(contacts_router)
 app.include_router(campaigns_router)
-
+app.include_router(media_router)
 
 @app.get("/")
 def inicio():
