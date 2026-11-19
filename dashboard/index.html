@@ -1,245 +1,1232 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>S.I.M.A. | Nova campanha</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S.I.M.A. | S.I.E.R. CORP.</title>
 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
+<style>
+:root {
+  --bg: #0b1220;
+  --panel: #131e30;
+  --panel2: #1a2940;
+  --border: #293951;
+  --text: #f4f7fb;
+  --muted: #91a2b9;
+  --green: #42d392;
+  --blue: #5595ff;
+  --red: #ff647c;
+}
 
-    body {
-      margin: 0;
-      padding: 20px;
-      background: #101827;
-      color: #ffffff;
-      font-family: Arial, sans-serif;
-    }
+* { box-sizing: border-box; }
 
-    .container {
-      max-width: 480px;
-      margin: 25px auto;
-      padding: 22px;
-      background: #1d293b;
-      border-radius: 18px;
-    }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Arial, sans-serif;
+}
 
-    h1 {
-      text-align: center;
-      color: #42d392;
-    }
+button, input, select, textarea { font: inherit; }
 
-    p {
-      color: #b8c5d6;
-      text-align: center;
-    }
+button { cursor: pointer; }
 
-    label {
-      display: block;
-      margin-top: 18px;
-      margin-bottom: 8px;
-      font-weight: bold;
-    }
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
 
-    input, select, textarea, button {
-      width: 100%;
-      padding: 13px;
-      border: 1px solid #46546a;
-      border-radius: 9px;
-      font-size: 16px;
-    }
+.sidebar {
+  width: 245px;
+  background: #101a2b;
+  border-right: 1px solid var(--border);
+  padding: 24px 15px;
+  flex-shrink: 0;
+}
 
-    input, select, textarea {
-      background: #101827;
-      color: white;
-    }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 10px 28px;
+}
 
-    textarea {
-      min-height: 90px;
-      resize: vertical;
-    }
+.brand-icon {
+  width: 43px;
+  height: 43px;
+  display: grid;
+  place-items: center;
+  background: #1e3d39;
+  color: var(--green);
+  border-radius: 13px;
+  font-size: 23px;
+  font-weight: bold;
+}
 
-    button {
-      margin-top: 20px;
-      border: none;
-      background: #42d392;
-      color: #10251d;
-      font-weight: bold;
-      cursor: pointer;
-    }
+.brand h1 {
+  margin: 0;
+  font-size: 21px;
+  letter-spacing: 1px;
+}
 
-    button:disabled {
-      opacity: 0.5;
-      cursor: wait;
-    }
+.brand small {
+  color: var(--muted);
+  font-size: 10px;
+}
 
-    #preview {
-      display: none;
-      width: 100%;
-      max-height: 300px;
-      object-fit: contain;
-      margin-top: 15px;
-      border-radius: 10px;
-      background: #101827;
-    }
+.menu-title {
+  color: #71839c;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+  padding: 12px 12px 8px;
+}
 
-    #resultado {
-      margin-top: 18px;
-      padding: 12px;
-      border-radius: 8px;
-      overflow-wrap: anywhere;
-      text-align: center;
-    }
-  </style>
+.nav-btn {
+  display: flex;
+  width: 100%;
+  gap: 12px;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: #aebbd0;
+  padding: 13px 12px;
+  border-radius: 9px;
+  text-align: left;
+  margin: 3px 0;
+}
+
+.nav-btn:hover, .nav-btn.active {
+  background: #20344b;
+  color: var(--green);
+}
+
+.nav-icon {
+  width: 22px;
+  text-align: center;
+  font-size: 17px;
+}
+
+.sidebar-footer {
+  margin-top: 35px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 28px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 28px;
+}
+
+.topbar h2 {
+  margin: 0;
+  font-size: 23px;
+}
+
+.topbar p {
+  color: var(--muted);
+  margin: 7px 0 0;
+  font-size: 13px;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--green);
+  background: #18352f;
+  padding: 9px 13px;
+  border-radius: 30px;
+  font-size: 12px;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  background: var(--green);
+  border-radius: 50%;
+}
+
+.page { display: none; }
+.page.active { display: block; }
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.card, .section {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.card-label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.card-number {
+  display: block;
+  font-size: 29px;
+  font-weight: bold;
+  margin-top: 12px;
+}
+
+.card-icon {
+  float: right;
+  font-size: 23px;
+}
+
+.section { margin-bottom: 20px; }
+
+.section h3 {
+  margin: 0 0 17px;
+  font-size: 16px;
+}
+
+.section-subtitle {
+  color: var(--muted);
+  font-size: 12px;
+  margin: -9px 0 17px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.field { margin-bottom: 15px; }
+
+.field.full { grid-column: 1 / -1; }
+
+label {
+  display: block;
+  color: #c4d0df;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 12px;
+  color: var(--text);
+  background: #0d1727;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--green);
+}
+
+textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.primary, .secondary, .danger {
+  border: 0;
+  border-radius: 8px;
+  padding: 12px 17px;
+  font-weight: bold;
+}
+
+.primary {
+  background: var(--green);
+  color: #08251a;
+}
+
+.secondary {
+  background: #263c59;
+  color: white;
+}
+
+.danger {
+  background: #492533;
+  color: #ff9aaa;
+}
+
+button:disabled {
+  opacity: .5;
+  cursor: wait;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.table-wrap { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 500px;
+}
+
+th, td {
+  padding: 13px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  font-size: 12px;
+}
+
+th {
+  color: var(--muted);
+  font-weight: normal;
+}
+
+td { color: #dce5f1; }
+
+.tag {
+  display: inline-block;
+  padding: 5px 9px;
+  background: #203b36;
+  color: var(--green);
+  border-radius: 20px;
+  font-size: 10px;
+}
+
+.empty {
+  color: var(--muted);
+  text-align: center;
+  padding: 25px;
+  font-size: 13px;
+}
+
+.message {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  display: none;
+}
+
+.message.ok {
+  display: block;
+  color: var(--green);
+  background: #18352f;
+}
+
+.message.error {
+  display: block;
+  color: #ff9aaa;
+  background: #492533;
+}
+
+#preview {
+  display: none;
+  max-width: 100%;
+  max-height: 240px;
+  margin-top: 12px;
+  border-radius: 9px;
+  object-fit: contain;
+}
+
+.contact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.contact-item input { width: auto; }
+
+.contact-item small {
+  display: block;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+@media(max-width: 850px) {
+  .sidebar { width: 205px; }
+  .main { padding: 20px; }
+}
+
+@media(max-width: 650px) {
+  .layout { display: block; }
+
+  .sidebar {
+    width: 100%;
+    padding: 12px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .brand { padding: 5px 8px 12px; }
+
+  .menu-title, .sidebar-footer { display: none; }
+
+  .nav-menu {
+    display: flex;
+    overflow-x: auto;
+    gap: 5px;
+    padding-bottom: 4px;
+  }
+
+  .nav-btn {
+    width: auto;
+    white-space: nowrap;
+    font-size: 11px;
+    padding: 10px;
+  }
+
+  .nav-icon { font-size: 14px; }
+
+  .main { padding: 18px 13px; }
+
+  .topbar h2 { font-size: 19px; }
+
+  .cards { grid-template-columns: 1fr 1fr; gap: 9px; }
+
+  .card { padding: 14px; }
+
+  .card-number { font-size: 24px; }
+
+  .form-grid { grid-template-columns: 1fr; }
+
+  .field.full { grid-column: auto; }
+}
+</style>
 </head>
 
 <body>
-  <main class="container">
-    <h1>S.I.M.A.</h1>
-    <p>Sistema Inteligente de Mensagens Automatizadas</p>
+<div class="layout">
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-icon">S</div>
+    <div>
+      <h1>S.I.M.A.</h1>
+      <small>S.I.E.R. CORP.</small>
+    </div>
+  </div>
+
+  <div class="menu-title">MENU PRINCIPAL</div>
+
+  <nav class="nav-menu">
+    <button class="nav-btn active" data-page="inicio">
+      <span class="nav-icon">▦</span> Visão geral
+    </button>
+    <button class="nav-btn" data-page="contatos">
+      <span class="nav-icon">♙</span> Contatos
+    </button>
+    <button class="nav-btn" data-page="campanhas">
+      <span class="nav-icon">◈</span> Campanhas
+    </button>
+    <button class="nav-btn" data-page="midias">
+      <span class="nav-icon">▧</span> Mídias
+    </button>
+    <button class="nav-btn" data-page="historico">
+      <span class="nav-icon">◷</span> Histórico
+    </button>
+    <button class="nav-btn" data-page="configuracoes">
+      <span class="nav-icon">⚙</span> Configurações
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    S.I.M.A. — Sistema Inteligente de Mensagens Automatizadas.<br>
+    Envio automático desativado durante os testes.
+  </div>
+</aside>
+
+<main class="main">
+
+<header class="topbar">
+  <div>
+    <h2 id="pageTitle">Visão geral</h2>
+    <p id="pageDescription">Acompanhe o funcionamento do seu sistema.</p>
+  </div>
+  <div class="status"><span class="dot"></span> Sistema online</div>
+</header>
+
+<!-- INÍCIO -->
+<section class="page active" id="inicio">
+
+  <div class="cards">
+    <div class="card">
+      <span class="card-icon">♙</span>
+      <span class="card-label">Contatos cadastrados</span>
+      <strong class="card-number" id="totalContatos">—</strong>
+    </div>
+
+    <div class="card">
+      <span class="card-icon">◈</span>
+      <span class="card-label">Campanhas</span>
+      <strong class="card-number" id="totalCampanhas">—</strong>
+    </div>
+
+    <div class="card">
+      <span class="card-icon">✓</span>
+      <span class="card-label">Preparadas</span>
+      <strong class="card-number" id="totalPreparadas">—</strong>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Bem-vindo ao S.I.M.A.</h3>
+    <p class="section-subtitle">
+      Sua central de gerenciamento de contatos e campanhas.
+    </p>
+    <div class="actions">
+      <button class="primary" onclick="abrirPagina('contatos')">
+        + Novo contato
+      </button>
+      <button class="secondary" onclick="abrirPagina('campanhas')">
+        + Nova campanha
+      </button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Últimas campanhas</h3>
+    <div id="ultimasCampanhas" class="empty">
+      Carregando informações...
+    </div>
+  </div>
+
+</section>
+
+<!-- CONTATOS -->
+<section class="page" id="contatos">
+
+  <div class="section">
+    <h3>Cadastrar contato</h3>
+    <p class="section-subtitle">
+      Adicione pessoas à base de contatos da sua empresa.
+    </p>
+
+    <form id="formContato">
+      <div class="form-grid">
+
+        <div class="field">
+          <label for="contatoNome">Nome</label>
+          <input id="contatoNome" required placeholder="Nome do contato">
+        </div>
+
+        <div class="field">
+          <label for="contatoTelefone">Telefone</label>
+          <input id="contatoTelefone" required
+            placeholder="Ex.: 73999999999">
+        </div>
+
+        <div class="field">
+          <label for="contatoCanal">Canal</label>
+          <select id="contatoCanal">
+            <option value="whatsapp">WhatsApp</option>
+          </select>
+        </div>
+
+      </div>
+
+      <button class="primary" id="btnContato" type="submit">
+        Cadastrar contato
+      </button>
+
+      <div class="message" id="msgContato"></div>
+    </form>
+  </div>
+
+  <div class="section">
+    <h3>Contatos cadastrados</h3>
+    <div id="listaContatos" class="empty">
+      Carregando contatos...
+    </div>
+  </div>
+
+</section>
+
+<!-- CAMPANHAS -->
+<section class="page" id="campanhas">
+
+  <div class="section">
+    <h3>Criar campanha</h3>
+    <p class="section-subtitle">
+      Configure uma campanha com imagem e legenda.
+    </p>
 
     <form id="formCampanha">
 
-      <label for="empresa">Identificação da empresa</label>
-      <input id="empresa" required
-        placeholder="Ex.: minha-empresa">
+      <div class="field">
+        <label for="campanhaNome">Nome da campanha</label>
+        <input id="campanhaNome" required
+          placeholder="Ex.: Promoção especial">
+      </div>
 
-      <label for="nome">Nome da campanha</label>
-      <input id="nome" required
-        placeholder="Ex.: Promoção de novembro">
+      <div class="field">
+        <label for="campanhaCanal">Canal</label>
+        <select id="campanhaCanal">
+          <option value="whatsapp">WhatsApp</option>
+        </select>
+      </div>
 
-      <label for="canal">Canal</label>
-      <select id="canal" required>
-        <option value="whatsapp">WhatsApp</option>
-      </select>
+      <div class="field">
+        <label for="campanhaImagem">Imagem JPG ou PNG — máximo 5 MB</label>
+        <input id="campanhaImagem" type="file"
+          accept="image/jpeg,image/png" required>
+        <img id="preview" alt="Prévia da imagem">
+      </div>
 
-      <label for="imagem">Escolher imagem da galeria</label>
-      <input
-        id="imagem"
-        type="file"
-        accept="image/jpeg,image/png"
-        required
-      >
+      <div class="field">
+        <label for="campanhaLegenda">Legenda</label>
+        <textarea id="campanhaLegenda"
+          placeholder="Escreva a mensagem da campanha..."></textarea>
+      </div>
 
-      <img id="preview" alt="Prévia da imagem">
-
-      <label for="legenda">Legenda da campanha</label>
-      <textarea id="legenda"
-        placeholder="Escreva a mensagem que acompanhará a imagem..."></textarea>
-
-      <button id="btnEnviar" type="submit">
+      <button class="primary" id="btnCampanha" type="submit">
         Enviar imagem e criar campanha
       </button>
 
-      <div id="resultado" role="status"></div>
-
+      <div class="message" id="msgCampanha"></div>
     </form>
-  </main>
+  </div>
 
-  <script>
-    const form = document.getElementById("formCampanha");
-    const campoImagem = document.getElementById("imagem");
-    const preview = document.getElementById("preview");
-    const resultado = document.getElementById("resultado");
-    const botao = document.getElementById("btnEnviar");
+  <div class="section">
+    <h3>Campanhas cadastradas</h3>
+    <div id="listaCampanhas" class="empty">
+      Carregando campanhas...
+    </div>
+  </div>
 
-    campoImagem.addEventListener("change", () => {
-      const arquivo = campoImagem.files[0];
+  <div class="section">
+    <h3>Destinatários da campanha</h3>
+    <p class="section-subtitle">
+      Selecione uma campanha e os contatos que participarão dela.
+    </p>
 
-      if (!arquivo) {
-        preview.style.display = "none";
-        return;
-      }
+    <div class="field">
+      <label for="selecionarCampanha">Campanha</label>
+      <select id="selecionarCampanha">
+        <option value="">Selecione uma campanha</option>
+      </select>
+    </div>
 
-      if (!["image/jpeg", "image/png"].includes(arquivo.type)) {
-        alert("Escolha uma imagem JPG ou PNG.");
-        campoImagem.value = "";
-        preview.style.display = "none";
-        return;
-      }
+    <div id="selecaoContatos" class="contact-list">
+      <div class="empty">Carregue os contatos para selecionar.</div>
+    </div>
 
-      if (arquivo.size > 5 * 1024 * 1024) {
-        alert("A imagem deve ter no máximo 5 MB.");
-        campoImagem.value = "";
-        preview.style.display = "none";
-        return;
-      }
+    <button class="primary" id="btnAssociar" type="button">
+      Associar contatos selecionados
+    </button>
 
-      preview.src = URL.createObjectURL(arquivo);
-      preview.style.display = "block";
+    <div class="message" id="msgDestinatarios"></div>
+
+    <div class="field" style="margin-top:20px">
+      <label>Preparar campanha</label>
+      <button class="secondary" id="btnPreparar" type="button">
+        Preparar campanha selecionada
+      </button>
+    </div>
+
+    <div class="message" id="msgPreparacao"></div>
+  </div>
+
+</section>
+
+<!-- MÍDIAS -->
+<section class="page" id="midias">
+  <div class="section">
+    <h3>Biblioteca de mídias</h3>
+    <p class="section-subtitle">
+      Imagens utilizadas nas campanhas cadastradas.
+    </p>
+    <div id="listaMidias" class="empty">
+      As mídias das campanhas aparecerão aqui.
+    </div>
+  </div>
+</section>
+
+<!-- HISTÓRICO -->
+<section class="page" id="historico">
+  <div class="section">
+    <h3>Histórico de atividades</h3>
+    <p class="section-subtitle">
+      Consulte os registros das campanhas.
+    </p>
+    <div class="field">
+      <label for="historicoCampanha">Campanha</label>
+      <select id="historicoCampanha">
+        <option value="">Selecione uma campanha</option>
+      </select>
+    </div>
+    <button class="secondary" id="btnHistorico">
+      Consultar histórico
+    </button>
+    <div id="listaHistorico" class="empty" style="margin-top:15px">
+      Selecione uma campanha para consultar.
+    </div>
+  </div>
+</section>
+
+<!-- CONFIGURAÇÕES -->
+<section class="page" id="configuracoes">
+  <div class="section">
+    <h3>Identificação da empresa</h3>
+    <p class="section-subtitle">
+      A identificação deve ser igual à utilizada no cadastro dos dados.
+    </p>
+
+    <div class="field">
+      <label for="empresaId">Identificação da empresa</label>
+      <input id="empresaId" placeholder="Ex.: minha-empresa">
+    </div>
+
+    <button class="primary" id="btnSalvarEmpresa">
+      Salvar identificação
+    </button>
+
+    <div class="message" id="msgConfiguracao"></div>
+  </div>
+
+  <div class="section">
+    <h3>Segurança</h3>
+    <p class="section-subtitle">
+      Durante esta fase de desenvolvimento, o sistema não envia mensagens automaticamente.
+    </p>
+    <span class="tag">ENVIO AUTOMÁTICO DESATIVADO</span>
+  </div>
+</section>
+
+</main>
+</div>
+
+<script>
+const API = "";
+
+const $ = id => document.getElementById(id);
+
+let contatos = [];
+let campanhas = [];
+
+let empresaId = localStorage.getItem("sima_empresa_id") || "";
+
+$("empresaId").value = empresaId;
+
+function mensagem(id, texto, tipo = "ok") {
+  const el = $(id);
+  el.textContent = texto;
+  el.className = "message " + tipo;
+}
+
+async function requisicao(url, opcoes = {}) {
+  const resposta = await fetch(API + url, opcoes);
+  const texto = await resposta.text();
+
+  let dados;
+  try {
+    dados = texto ? JSON.parse(texto) : {};
+  } catch {
+    dados = texto;
+  }
+
+  if (!resposta.ok) {
+    throw new Error(
+      typeof dados === "string"
+        ? dados
+        : JSON.stringify(dados)
+    );
+  }
+
+  return dados;
+}
+
+function exigirEmpresa() {
+  if (!empresaId) {
+    throw new Error("Configure primeiro a identificação da empresa.");
+  }
+}
+
+const paginas = {
+  inicio: ["Visão geral", "Acompanhe o funcionamento do seu sistema."],
+  contatos: ["Contatos", "Gerencie sua base de contatos."],
+  campanhas: ["Campanhas", "Crie e organize suas campanhas."],
+  midias: ["Biblioteca de mídias", "Consulte as imagens utilizadas."],
+  historico: ["Histórico", "Acompanhe as atividades registradas."],
+  configuracoes: ["Configurações", "Preferências e identificação."]
+};
+
+function abrirPagina(nome) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+
+  $(nome).classList.add("active");
+
+  const botao = document.querySelector(`[data-page="${nome}"]`);
+  if (botao) botao.classList.add("active");
+
+  $("pageTitle").textContent = paginas[nome][0];
+  $("pageDescription").textContent = paginas[nome][1];
+
+  if (nome === "contatos") carregarContatos();
+  if (nome === "campanhas") atualizarCampanhas();
+  if (nome === "midias") carregarMidias();
+  if (nome === "inicio") atualizarPainel();
+}
+
+document.querySelectorAll(".nav-btn").forEach(botao => {
+  botao.addEventListener("click", () => abrirPagina(botao.dataset.page));
+});
+
+$("btnSalvarEmpresa").addEventListener("click", () => {
+  const valor = $("empresaId").value.trim();
+
+  if (!valor) {
+    mensagem("msgConfiguracao", "Informe a identificação da empresa.", "error");
+    return;
+  }
+
+  empresaId = valor;
+  localStorage.setItem("sima_empresa_id", empresaId);
+
+  mensagem("msgConfiguracao", "Identificação salva neste dispositivo.");
+  atualizarPainel();
+});
+
+async function carregarContatos() {
+  try {
+    exigirEmpresa();
+
+    const dados = await requisicao(
+      "/contatos/?empresa_id=" + encodeURIComponent(empresaId)
+    );
+
+    contatos = Array.isArray(dados) ? dados : dados.contatos || [];
+
+    renderizarContatos();
+    renderizarSelecaoContatos();
+    $("totalContatos").textContent = contatos.length;
+
+  } catch (erro) {
+    $("listaContatos").textContent = erro.message;
+  }
+}
+
+function renderizarContatos() {
+  if (!contatos.length) {
+    $("listaContatos").innerHTML = '<div class="empty">Nenhum contato cadastrado.</div>';
+    return;
+  }
+
+  const tabela = document.createElement("table");
+  tabela.innerHTML = `
+    <thead><tr>
+      <th>Nome</th><th>Telefone</th><th>Canal</th>
+    </tr></thead><tbody></tbody>`;
+
+  const corpo = tabela.querySelector("tbody");
+
+  contatos.forEach(c => {
+    const tr = document.createElement("tr");
+    [c.nome, c.telefone, c.canal].forEach(valor => {
+      const td = document.createElement("td");
+      td.textContent = valor || "";
+      tr.appendChild(td);
+    });
+    corpo.appendChild(tr);
+  });
+
+  $("listaContatos").innerHTML = "";
+  $("listaContatos").appendChild(tabela);
+}
+
+$("formContato").addEventListener("submit", async evento => {
+  evento.preventDefault();
+
+  const botao = $("btnContato");
+  botao.disabled = true;
+
+  try {
+    exigirEmpresa();
+
+    const parametros = new URLSearchParams({
+      nome: $("contatoNome").value.trim(),
+      telefone: $("contatoTelefone").value.trim(),
+      canal: $("contatoCanal").value,
+      empresa_id: empresaId
     });
 
-    form.addEventListener("submit", async (evento) => {
-      evento.preventDefault();
-
-      const arquivo = campoImagem.files[0];
-
-      if (!arquivo) {
-        alert("Selecione uma imagem.");
-        return;
-      }
-
-      botao.disabled = true;
-      resultado.textContent = "Enviando imagem...";
-      
-      try {
-        const dados = new FormData();
-        dados.append("arquivo", arquivo);
-
-        const respostaUpload = await fetch("/arquivos/imagem", {
-          method: "POST",
-          body: dados
-        });
-
-        if (!respostaUpload.ok) {
-          throw new Error(await respostaUpload.text());
-        }
-
-        const upload = await respostaUpload.json();
-
-        resultado.textContent = "Imagem enviada! Criando campanha...";
-
-        const campanha = {
-          empresa_id: document.getElementById("empresa").value.trim(),
-          nome: document.getElementById("nome").value.trim(),
-          mensagem: "",
-          canal: document.getElementById("canal").value,
-          tipo_conteudo: "image",
-          media_url: upload.media_url,
-          media_type: upload.media_type,
-          legenda: document.getElementById("legenda").value.trim()
-        };
-
-        const respostaCampanha = await fetch("/campanhas/", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(campanha)
-        });
-
-        if (!respostaCampanha.ok) {
-          throw new Error(await respostaCampanha.text());
-        }
-
-        const criada = await respostaCampanha.json();
-
-        resultado.textContent =
-          "Campanha criada com sucesso! ID: " + criada.id;
-
-        form.reset();
-        preview.style.display = "none";
-
-      } catch (erro) {
-        resultado.textContent =
-          "Não foi possível concluir: " + erro.message;
-      } finally {
-        botao.disabled = false;
-      }
+    await requisicao("/contatos/?" + parametros.toString(), {
+      method: "POST"
     });
-  </script>
+
+    mensagem("msgContato", "Contato cadastrado com sucesso!");
+    $("formContato").reset();
+
+    await carregarContatos();
+
+  } catch (erro) {
+    mensagem("msgContato", erro.message, "error");
+  } finally {
+    botao.disabled = false;
+  }
+});
+
+$("campanhaImagem").addEventListener("change", () => {
+  const arquivo = $("campanhaImagem").files[0];
+  const preview = $("preview");
+
+  if (!arquivo) {
+    preview.style.display = "none";
+    return;
+  }
+
+  if (!["image/jpeg", "image/png"].includes(arquivo.type)) {
+    mensagem("msgCampanha", "Escolha uma imagem JPG ou PNG.", "error");
+    $("campanhaImagem").value = "";
+    preview.style.display = "none";
+    return;
+  }
+
+  if (arquivo.size > 5 * 1024 * 1024) {
+    mensagem("msgCampanha", "A imagem deve ter no máximo 5 MB.", "error");
+    $("campanhaImagem").value = "";
+    preview.style.display = "none";
+    return;
+  }
+
+  preview.src = URL.createObjectURL(arquivo);
+  preview.style.display = "block";
+});
+
+$("formCampanha").addEventListener("submit", async evento => {
+  evento.preventDefault();
+
+  const botao = $("btnCampanha");
+  const arquivo = $("campanhaImagem").files[0];
+
+  botao.disabled = true;
+
+  try {
+    exigirEmpresa();
+
+    if (!arquivo) throw new Error("Selecione uma imagem.");
+
+    mensagem("msgCampanha", "Enviando imagem...");
+
+    const dados = new FormData();
+    dados.append("arquivo", arquivo);
+
+    const upload = await requisicao("/arquivos/imagem", {
+      method: "POST",
+      body: dados
+    });
+
+    mensagem("msgCampanha", "Imagem enviada. Criando campanha...");
+
+    const campanha = {
+      empresa_id: empresaId,
+      nome: $("campanhaNome").value.trim(),
+      mensagem: "",
+      canal: $("campanhaCanal").value,
+      tipo_conteudo: "image",
+      media_url: upload.media_url,
+      media_type: upload.media_type,
+      legenda: $("campanhaLegenda").value.trim()
+    };
+
+    const criada = await requisicao("/campanhas/", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(campanha)
+    });
+
+    mensagem("msgCampanha", "Campanha criada com sucesso! ID: " + criada.id);
+
+    $("formCampanha").reset();
+    $("preview").style.display = "none";
+
+    await atualizarCampanhas();
+
+  } catch (erro) {
+    mensagem("msgCampanha", erro.message, "error");
+  } finally {
+    botao.disabled = false;
+  }
+});
+
+async function atualizarCampanhas() {
+  try {
+    exigirEmpresa();
+
+    const dados = await requisicao(
+      "/campanhas/?empresa_id=" + encodeURIComponent(empresaId)
+    );
+
+    campanhas = Array.isArray(dados) ? dados : dados.campanhas || [];
+
+    renderizarCampanhas();
+    preencherCampanhas();
+    $("totalCampanhas").textContent = campanhas.length;
+
+    $("totalPreparadas").textContent =
+      campanhas.filter(c => c.status === "preparada").length;
+
+  } catch (erro) {
+    $("listaCampanhas").textContent = erro.message;
+  }
+}
+
+function renderizarCampanhas() {
+  if (!campanhas.length) {
+    $("listaCampanhas").innerHTML = '<div class="empty">Nenhuma campanha cadastrada.</div>';
+    $("ultimasCampanhas").textContent = "Nenhuma campanha cadastrada.";
+    return;
+  }
+
+  const tabela = document.createElement("table");
+  tabela.innerHTML = `
+    <thead><tr>
+      <th>Campanha</th><th>ID</th><th>Canal</th><th>Status</th>
+    </tr></thead><tbody></tbody>`;
+
+  campanhas.forEach(c => {
+    const tr = document.createElement("tr");
+    [c.nome, c.id, c.canal, c.status].forEach(valor => {
+      const td = document.createElement("td");
+      td.textContent = valor || "";
+      tr.appendChild(td);
+    });
+    tabela.querySelector("tbody").appendChild(tr);
+  });
+
+  $("listaCampanhas").innerHTML = "";
+  $("listaCampanhas").appendChild(tabela);
+
+  $("ultimasCampanhas").innerHTML = "";
+  campanhas.slice(-5).reverse().forEach(c => {
+    const p = document.createElement("p");
+    p.textContent = c.nome + " — " + c.status;
+    $("ultimasCampanhas").appendChild(p);
+  });
+}
+
+function preencherCampanhas() {
+  ["selecionarCampanha", "historicoCampanha"].forEach(id => {
+    const select = $(id);
+    const anterior = select.value;
+
+    select.innerHTML = '<option value="">Selecione uma campanha</option>';
+
+    campanhas.forEach(c => {
+      const op = document.createElement("option");
+      op.value = c.id;
+      op.textContent = c.nome + " (ID " + c.id + ")";
+      select.appendChild(op);
+    });
+
+    if (anterior) select.value = anterior;
+  });
+}
+
+function renderizarSelecaoContatos() {
+  const area = $("selecaoContatos");
+  area.innerHTML = "";
+
+  if (!contatos.length) {
+    area.textContent = "Nenhum contato disponível.";
+    return;
+  }
+
+  contatos.forEach(c => {
+    const item = document.createElement("label");
+    item.className = "contact-item";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = c.id;
+
+    const texto = document.createElement("span");
+    texto.textContent = c.nome + " — " + c.telefone;
+
+    item.appendChild(checkbox);
+    item.appendChild(texto);
+    area.appendChild(item);
+  });
+}
+
+$("btnAssociar").addEventListener("click", async () => {
+  try {
+    exigirEmpresa();
+
+    const campanhaId = $("selecionarCampanha").value;
+    if (!campanhaId) throw new Error("Selecione uma campanha.");
+
+    const ids = Array.from(
+      $("selecaoContatos").querySelectorAll("input:checked")
+    ).map(c => Number(c.value));
+
+    if (!ids.length) throw new Error("Selecione pelo menos um contato.");
+
+    const resultado = await requisicao(
+      "/campanhas/" + campanhaId + "/destinatarios?empresa_id=" +
+      encodeURIComponent(empresaId),
+      {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({contatos_ids: ids})
+      }
+    );
+
+    mensagem(
+      "msgDestinatarios",
+      resultado.mensagem + " Total: " + resultado.total_destinatarios
+    );
+
+  } catch (erro) {
+    mensagem("msgDestinatarios", erro.message, "error");
+  }
+});
+
+$("btnPreparar").addEventListener("click", async () => {
+  try {
+    exigirEmpresa();
+
+    const campanhaId = $("selecionarCampanha").value;
+    if (!campanhaId) throw new Error("Selecione uma campanha.");
+
+    if (!confirm("Deseja preparar esta campanha? Nenhuma mensagem será enviada.")) {
+      return;
+    }
+
+    const resultado = await requisicao(
+      "/campanhas/" + campanhaId + "/preparar?empresa_id=" +
+      encodeURIComponent(empresaId),
+      {method: "POST"}
+    );
+
+    mensagem(
+      "msgPreparacao",
+      resultado.mensagem + " Envio automático: " +
+      (resultado.envio_automatico ? "ATIVO" : "DESATIVADO")
+    );
+
+    await atualizarCampanhas();
+
+  } catch (erro) {
+    mensagem("msgPreparacao", erro.message, "error");
+  }
+});
+
+$("btnHistorico").addEventListener("click", async () => {
+  try {
+    exigirEmpresa();
+
+    const id = $("historicoCampanha").value;
+    if (!id) throw new Error("Selecione uma campanha.");
+
+    const dados = await requisicao(
+      "/campanhas/" + id + "/historico?empresa_id=" +
+      encodeURIComponent(empresaId)
+    );
+
+    if (!Array.isArray(dados) || !dados.length) {
+      $("listaHistorico").textContent = "Nenhum registro encontrado.";
+      return;
+    }
+
+    const tabela = document.createElement("table");
+    tabela.innerHTML = `
+      <thead><tr><th>Campanha</th><th>Status</th><th>Data</th></tr></thead>
+      <tbody></tbody>`;
+
+    dados.forEach(item => {
+      const tr = document.createElement("tr");
+
+      [item.nome, item.status, item.data].forEach(valor => {
+        const td = document.createElement("td");
+        td.textContent = valor || "";
+        tr.appendChild(td);
+      });
+
+      tabela.querySelector("tbody").appendChild(tr);
+    });
+
+    $("listaHistorico").innerHTML = "";
+    $("listaHistorico").appendChild(tabela);
+
+  } catch (erro) {
+    $("listaHistorico").textContent = erro.message;
+  }
+});
+
+function carregarMidias() {
+  const area = $("listaMidias");
+  area.innerHTML = "";
+
+  const comImagem = campanhas.filter(c => c.media_url);
+
+  if (!comImagem.length) {
+    area.textContent = "Nenhuma imagem cadastrada nas campanhas.";
+    return;
+  }
+
+  comImagem.forEach(c => {
+    const bloco = document.createElement("div");
+    bloco.style.marginBottom = "18px";
+
+    const titulo = document.createElement("p");
+    titulo.textContent = c.nome;
+
+    const imagem = document.createElement("img");
+    imagem.src = c.media_url;
+    imagem.alt = c.nome;
+    imagem.style.maxWidth = "180px";
+    imagem.style.maxHeight = "180px";
+    imagem.style.objectFit = "contain";
+    imagem.style.borderRadius = "9px";
+
+    bloco.appendChild(titulo);
+    bloco.appendChild(imagem);
+    area.appendChild(bloco);
+  });
+}
+
+async function atualizarPainel() {
+  if (!empresaId) return;
+
+  await Promise.allSettled([
+    carregarContatos(),
+    atualizarCampanhas()
+  ]);
+}
+
+if (empresaId) {
+  atualizarPainel();
+} else {
+  $("totalContatos").textContent = "0";
+  $("totalCampanhas").textContent = "0";
+  $("totalPreparadas").textContent = "0";
+}
+</script>
 </body>
 </html>
